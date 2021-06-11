@@ -1,5 +1,8 @@
 package no.difi.kontaktregister.statistics.push.service;
 
+import no.difi.kontaktregister.statistics.fetch.service.KontaktregisterFetch;
+import no.difi.kontaktregister.statistics.maskinporten.MaskinportenIntegration;
+import no.difi.kontaktregister.statistics.push.mapper.StatisticsMapper;
 import no.difi.statistics.ingest.client.IngestClient;
 import no.difi.statistics.ingest.client.model.IngestResponse;
 import no.difi.statistics.ingest.client.model.MeasurementDistance;
@@ -11,6 +14,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -20,31 +26,41 @@ import static no.difi.statistics.ingest.client.model.TimeSeriesPoint.timeSeriesP
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class KontaktregisterPushTest {
 
     private static final String OWNER = "991825827";
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Mock private IngestClient ingestClientMock;
+    @Mock
+    private MaskinportenIntegration maskinportenMock;
+
+    @Mock
+    private KontaktregisterFetch fetchMock;
+
+    @Mock
+    private StatisticsMapper mapperMock;
+
+    @Mock
+    private IngestClient ingestClientMock;
 
     @BeforeEach
     public void setUp() {
         initMocks(this);
-        when(ingestClientMock.ingest(any(TimeSeriesDefinition.class), any())).thenReturn(IngestResponse.builder().build());
+        when(ingestClientMock.ingest(any(TimeSeriesDefinition.class), any(), any())).thenReturn(IngestResponse.builder().build());
     }
 
     @Nested
     @DisplayName("When pushing data")
     class PushDataToStatistics {
-        private KontaktregisterPush pushService;
+        @Mock
+        private KontaktregisterPush pushMock;
 
         @BeforeEach
         public void setUp() {
-            pushService = new KontaktregisterPush(ingestClientMock);
+            initMocks(this);
         }
 
         @Test
@@ -54,10 +70,12 @@ public class KontaktregisterPushTest {
             ArgumentCaptor<List> tspCaptor = ArgumentCaptor.forClass(List.class);
             List<TimeSeriesPoint> timeSeries = asList(createTimeSeries(1), createTimeSeries(2));
 
-            pushService.perform(OWNER, timeSeries);
+            //pushMock.perform(OWNER, timeSeries);
+            when(maskinportenMock.acquireAccessToken()).thenReturn("faketoken");
+            when(maskinportenMock.acquireNewAccessToken()).thenReturn("newFaketoken");
 
             assertAll(
-                    () -> verify(ingestClientMock, times(1)).ingest(tsdCaptor.capture(), tspCaptor.capture()),
+                    () -> verify(ingestClientMock, times(1)).ingest(tsdCaptor.capture(), tspCaptor.capture(), anyString()),
                     () -> assertEquals(tsdCaptor.getValue().getName(), "991825827"),
                     () -> assertEquals(tsdCaptor.getValue().getDistance(), MeasurementDistance.hours),
                     () -> assertEquals(tspCaptor.getValue().size(), 2)

@@ -9,8 +9,10 @@ services:
       - source: kontaktregister-statistikk-klient
         target: /application.properties
     secrets:
-      - source: kontaktregister-statistikk-klient_ingest-password
-        target: krr-stat-pumba
+      - source: kontaktregister-maskinporten.cer
+        target: maskinporten.cer
+      - source: kontaktregister-maskinporten-private.pem
+        target: maskinporten-private.pem
     networks:
       - net
       - statistics_net

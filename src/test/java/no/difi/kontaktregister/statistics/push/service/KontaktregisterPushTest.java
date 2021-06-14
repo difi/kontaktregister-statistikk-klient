@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class KontaktregisterPushTest {
 
@@ -46,22 +45,20 @@ public class KontaktregisterPushTest {
     @Mock
     private IngestClient ingestClientMock;
 
+
+    private KontaktregisterPush kontaktregisterPush;
+
     @BeforeEach
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
+        kontaktregisterPush = new KontaktregisterPush(fetchMock, mapperMock, ingestClientMock, maskinportenMock);
         when(ingestClientMock.ingest(any(TimeSeriesDefinition.class), any(), any())).thenReturn(IngestResponse.builder().build());
     }
 
     @Nested
     @DisplayName("When pushing data")
     class PushDataToStatistics {
-        @Mock
-        private KontaktregisterPush pushMock;
 
-        @BeforeEach
-        public void setUp() {
-            initMocks(this);
-        }
 
         @Test
         @DisplayName("Should use bulk API when more than one TimeSeriesPoint")
@@ -70,13 +67,15 @@ public class KontaktregisterPushTest {
             ArgumentCaptor<List> tspCaptor = ArgumentCaptor.forClass(List.class);
             List<TimeSeriesPoint> timeSeries = asList(createTimeSeries(1), createTimeSeries(2));
 
-            //pushMock.perform(OWNER, timeSeries);
             when(maskinportenMock.acquireAccessToken()).thenReturn("faketoken");
             when(maskinportenMock.acquireNewAccessToken()).thenReturn("newFaketoken");
 
+            kontaktregisterPush.perform(OWNER, timeSeries);
+
+
             assertAll(
                     () -> verify(ingestClientMock, times(1)).ingest(tsdCaptor.capture(), tspCaptor.capture(), anyString()),
-                    () -> assertEquals(tsdCaptor.getValue().getName(), "991825827"),
+                    () -> assertEquals(tsdCaptor.getValue().getName(), OWNER),
                     () -> assertEquals(tsdCaptor.getValue().getDistance(), MeasurementDistance.hours),
                     () -> assertEquals(tspCaptor.getValue().size(), 2)
             );

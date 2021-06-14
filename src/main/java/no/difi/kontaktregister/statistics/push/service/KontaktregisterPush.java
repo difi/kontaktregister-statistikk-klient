@@ -27,7 +27,7 @@ public class KontaktregisterPush {
     private final StatisticsMapper mapper;
     private final IngestClient ingestClient;
 
-    private MaskinportenIntegration maskinportenIntegration;
+    private final MaskinportenIntegration maskinportenIntegration;
 
     @Autowired
     public KontaktregisterPush(KontaktregisterFetch fetch, StatisticsMapper mapper, IngestClient ingestClient, MaskinportenIntegration maskinportenIntegration) {
@@ -37,9 +37,10 @@ public class KontaktregisterPush {
         this.maskinportenIntegration = maskinportenIntegration;
     }
 
-    String accessToken = fetchAccessTokenFromMaskinporten();
+
 
     public void perform(String seriesName, List<TimeSeriesPoint> points) {
+        String accessToken = fetchAccessTokenFromMaskinporten();
         final TimeSeriesDefinition tsd = timeSeriesDefinition().name(seriesName).distance(hours);
         logger.info(
                 "Pushing {} data points from {} to {}",
